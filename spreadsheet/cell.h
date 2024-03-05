@@ -5,22 +5,34 @@
 
 #include <functional>
 #include <unordered_set>
+#include <optional>
 
 class Sheet;
 
 class Cell : public CellInterface {
 public:
-    Cell(Sheet& sheet);
-    ~Cell();
+    using Children = std::vector<Position>;
+    using Parents = std::unordered_set<const Cell*>;
 
-    void Set(std::string text);
-    void Clear();
+    Cell(const SheetInterface &sheet, std::string text);
+    Cell(const SheetInterface &sheet);
+    ~Cell() override;
 
     Value GetValue() const override;
     std::string GetText() const override;
+
     std::vector<Position> GetReferencedCells() const override;
 
-    bool IsReferenced() const;
+    void AddParent(const Cell* parent);
+    void RemoveParent(const Cell* parent);
+    void SetParents(Parents parents);
+    const Parents& GetParents() const;
+    Parents& GetParents();
+    const Children& GetChildren() const;
+
+
+    void InvalidateCache() const;
+    bool IsEmpty() const;
 
 private:
     class Impl;
@@ -28,9 +40,9 @@ private:
     class TextImpl;
     class FormulaImpl;
 
+    const SheetInterface& sheet_;
     std::unique_ptr<Impl> impl_;
-
-    // Добавьте поля и методы для связи с таблицей, проверки циклических 
-    // зависимостей, графа зависимостей и т. д.
-
+    mutable std::optional<Value> cache_;
+    Children children_;  //  cells this cell depends on
+    Parents parents_;  //  cells that depend on the current cell
 };
